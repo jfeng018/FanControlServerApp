@@ -1,0 +1,13 @@
+{
+    ".url": {
+        "FanControlServer.Application": {
+            "title": "Fan Control Server",
+            "icon": "images/icon_{0}.png",
+            "type": "url",
+            "protocol": "",
+            "port": "${service_port}",
+            "url": "/",
+            "allUsers": false
+        }
+    }
+}

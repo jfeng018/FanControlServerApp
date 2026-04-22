@@ -1,0 +1,12 @@
+#!/bin/bash
+
+# 从环境变量中获取 wizard 配置的值，默认值为 "keep" (保留)
+DATA_ACTION="${wizard_data_action:-keep}"
+
+# 根据用户选择设置一个“标记”，供后续的 uninstall_callback 脚本读取
+if [ "$DATA_ACTION" = "delete" ]; then
+    # 创建该标记文件，表示用户同意删除数据
+    touch "${TRIM_PKGVAR}/.delete_data_flag"
+fi
+
+exit 0

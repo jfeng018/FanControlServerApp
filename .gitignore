@@ -1,0 +1,44 @@
+# ===== IDE / 编辑器 =====
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# ===== 系统文件 =====
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# ===== 飞牛 fnOS 打包产物 =====
+*.fpk
+app/server/*
+
+# ===== 前端 =====
+node_modules/
+frontend/dist/
+*.local
+
+# ===== 前端构建 → Go embed 中间产物 =====
+backend/web/
+
+# ===== Go =====
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# ===== 后端本地运行时数据 =====
+backend/configs/
+backend/logs/
+
+# ===== 构建脚本旧产物 =====
+dist/
+
+# ===== 环境变量 =====
+.env
+.env.*
+!.env.example

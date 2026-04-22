@@ -1,0 +1,70 @@
+#!/bin/bash
+
+set -e          # 遇到错误立即退出
+set -u          # 使用未定义变量时报错
+
+# 安全删除函数
+safe_delete() {
+    local dir_path="$1"
+    local dir_desc="$2"
+
+    # 1. 变量非空检查
+    if [ -z "$dir_path" ]; then
+        echo "错误：${dir_desc} 路径为空，拒绝删除。"
+        return 1
+    fi
+
+    # 2. 动态获取存储卷路径和应用名称（使用变量保护，若未定义则脚本退出）
+    local install_vol="${TRIM_APPDEST_VOL:?}"
+    local app_name="${TRIM_APPNAME:?}"
+    local base_data="${install_vol}/@appdata"
+    local base_conf="${install_vol}/@appconf"
+
+    # 3. 检查路径是否在预期的安全基础目录下（白名单）
+    if [[ "$dir_path" != "$base_data"/* ]] && [[ "$dir_path" != "$base_conf"/* ]]; then
+        echo "错误：${dir_desc} 路径 '${dir_path}' 不在预期的安全基础目录下。"
+        echo "允许的基础目录：$base_data 或 $base_conf"
+        return 1
+    fi
+
+    # 4. 检查路径是否以应用名称结尾
+    if [[ "$dir_path" != *"/$app_name" ]]; then
+        echo "错误：${dir_desc} 路径 '${dir_path}' 末尾不是 '/$app_name'，拒绝删除。"
+        return 1
+    fi
+
+    # 5. 检查目录是否存在
+    if [ ! -d "$dir_path" ]; then
+        echo "警告：${dir_desc} 目录 '${dir_path}' 不存在，跳过删除。"
+        return 0
+    fi
+
+    # 所有检查通过，执行删除（使用变量保护双重保险）
+    echo "所有检查通过，正在删除 ${dir_desc} 目录: ${dir_path}"
+    rm -rf "${dir_path:?}"
+    if [ $? -eq 0 ]; then
+        echo "${dir_desc} 已成功删除"
+    else
+        echo "${dir_desc} 删除失败"
+        return 1
+    fi
+}
+
+# 检查是否存在我们之前创建的“删除标记”
+if [ -f "${TRIM_PKGVAR}/.delete_data_flag" ]; then
+    echo "$(date) - 用户选择删除数据，开始安全清理..."
+
+    # 删除动态数据目录
+    safe_delete "${TRIM_PKGVAR}" "动态数据目录"
+
+    # 删除配置文件目录
+    safe_delete "${TRIM_PKGETC}" "配置文件目录"
+
+    # 清理标记文件
+    rm -f "${TRIM_PKGVAR}/.delete_data_flag"
+    echo "$(date) - 清理流程结束。"
+else
+    echo "$(date) - 用户选择保留数据，跳过清理。"
+fi
+
+exit 0
