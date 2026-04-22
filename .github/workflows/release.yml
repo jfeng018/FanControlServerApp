@@ -1,0 +1,79 @@
+name: CI/CD - Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    name: Build and Publish Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.26'
+
+      - name: Build Frontend
+        run: |
+          cd frontend
+          npm install
+          npm run build
+
+      - name: Verify frontend output
+        run: |
+          if [[ ! -f "backend/web/index.html" ]]; then
+            echo "错误: 未找到 backend/web/index.html"
+            exit 1
+          fi
+
+      - name: Build Backend
+        run: |
+          mkdir -p app/server
+          cd backend
+          go mod tidy
+          GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags '-s -w' -o ../app/server/fancontrolserver .
+
+      - name: Install fnpack
+        run: |
+          # 从官方地址下载 fnpack
+          curl -L -o fnpack "https://static2.fnnas.com/fnpack/fnpack-1.2.1-linux-amd64"
+          chmod +x fnpack
+          sudo mv fnpack /usr/local/bin/fnpack
+          fnpack --help
+
+      - name: Package with fnpack
+        run: |
+          fnpack build
+
+      - name: Move fpk to dist
+        run: |
+          mkdir -p dist
+          fpk_file=$(find . -maxdepth 1 -name "*.fpk" -type f | head -1)
+          if [[ -n "$fpk_file" ]]; then
+            mv "$fpk_file" dist/
+            echo "移动安装包到 dist/$(basename "$fpk_file")"
+          else
+            echo "错误: 未找到生成的 .fpk 文件"
+            exit 1
+          fi
+
+      - name: Create Release and Upload Assets
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.fpk
+          generate_release_notes: true
